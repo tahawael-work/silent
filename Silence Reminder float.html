@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Silence Reminder float</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat+Brush&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --mat:#2e6e5a; --grid:rgba(255,255,255,.13); --grid2:rgba(255,255,255,.06);
+  --paper:#fffdf7; --ink:#1f2a4d; --note:#ffe17d; --blush:#ffd3cc;
+  --yarn:#2f80c8; --coral:#ef5b4c; --felt:#f5b83d; --pink:#f4a6b8; --sky:#8fd0ee;
+  --shade:rgba(10,30,25,.35);
+  --hand:"Patrick Hand","Segoe Print","Bradley Hand","Comic Sans MS",cursive;
+  --brush:"Caveat Brush","Segoe Print","Bradley Hand","Comic Sans MS",cursive;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--mat:#193a31;--grid:rgba(255,255,255,.09);--grid2:rgba(255,255,255,.04);--paper:#efe9da;--note:#e8c964;--blush:#f0bdb5;--shade:rgba(0,0,0,.5);}
+}
+:root[data-theme="dark"]{--mat:#193a31;--grid:rgba(255,255,255,.09);--grid2:rgba(255,255,255,.04);--paper:#efe9da;--note:#e8c964;--blush:#f0bdb5;--shade:rgba(0,0,0,.5);}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{
+  margin:0;min-height:100vh;color:var(--ink);font-family:var(--hand);font-size:1.15rem;
+  background-color:var(--mat);
+  background-image:
+    linear-gradient(var(--grid) 1.5px,transparent 1.5px),
+    linear-gradient(90deg,var(--grid) 1.5px,transparent 1.5px),
+    linear-gradient(var(--grid2) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid2) 1px,transparent 1px);
+  background-size:80px 80px,80px 80px,16px 16px,16px 16px;
+  display:flex;justify-content:center;
+}
+main{width:100%;max-width:440px;padding:34px 22px 48px;display:flex;flex-direction:column;align-items:center;gap:26px}
+
+/* washi tape title */
+.tape{
+  font-family:var(--brush);font-size:2.3rem;line-height:1;color:var(--ink);
+  padding:12px 34px;transform:rotate(-2.5deg);position:relative;
+  background:repeating-linear-gradient(-45deg,var(--pink) 0 10px,#fbd2dc 10px 20px);
+  box-shadow:0 3px 0 var(--shade);
+  clip-path:polygon(0 0,3% 12%,0 25%,3% 38%,0 50%,3% 62%,0 75%,3% 88%,0 100%,100% 100%,97% 88%,100% 75%,97% 62%,100% 50%,97% 38%,100% 25%,97% 12%,100% 0);
+}
+h1{margin:0;font:inherit}
+
+/* the paper dial */
+.dial{position:relative;width:min(80vw,310px);aspect-ratio:1;filter:drop-shadow(0 6px 0 var(--shade))}
+.dial svg{width:100%;height:100%;display:block}
+.paper{fill:var(--paper);transition:fill .3s}
+.edge{fill:none;stroke:var(--ink);stroke-width:.8;stroke-dasharray:2.4 2.4;opacity:.5}
+.stitch{fill:none;stroke:var(--ink);stroke-width:1.4;stroke-dasharray:3 3.4;opacity:.45}
+.yarn{fill:none;stroke:var(--yarn);stroke-width:8;stroke-linecap:round;transition:stroke .3s}
+.fluff{fill:none;stroke:#fff;stroke-width:1.6;stroke-dasharray:1.2 2.6;opacity:.55}
+.center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center;padding:0 22%}
+.time{font-family:var(--brush);font-size:clamp(3rem,15vw,4.4rem);line-height:1;font-variant-numeric:tabular-nums}
+.state{font-size:1.15rem;line-height:1.15;min-height:2.3em;display:flex;align-items:center}
+.dial.alert .paper{fill:var(--blush)}
+.dial.alert .yarn{stroke:var(--coral)}
+.dial.alert .time,.dial.alert .state{color:var(--coral)}
+.dial.alert{animation:wiggle .5s ease-in-out infinite}
+@keyframes wiggle{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
+
+/* bead meter */
+.beads{display:flex;gap:6px;height:26px;align-items:flex-end;width:100%;justify-content:center}
+.beads i{width:14px;height:100%;border-radius:8px;background:rgba(255,255,255,.18);border:2px dashed rgba(255,255,255,.45);transition:background .08s,border-color .08s}
+.beads i:nth-child(3n+1).on{background:var(--pink)}
+.beads i:nth-child(3n+2).on{background:var(--felt)}
+.beads i:nth-child(3n).on{background:var(--sky)}
+.beads i.on{border-color:var(--ink);border-style:solid}
+
+/* felt button */
+button{
+  font-family:var(--brush);font-size:1.7rem;color:var(--ink);cursor:pointer;
+  background:var(--felt);border:0;border-radius:999px;padding:16px 44px;min-width:240px;position:relative;
+  box-shadow:0 6px 0 var(--shade);transition:transform .1s,box-shadow .1s;
+}
+button::after{content:"";position:absolute;inset:6px;border:2.5px dashed var(--ink);border-radius:999px;opacity:.55;pointer-events:none}
+button:active{transform:translateY(5px);box-shadow:0 1px 0 var(--shade)}
+button.stop{background:var(--paper)}
+button.ghost{font-size:1.3rem;padding:10px 28px;min-width:0;background:var(--sky);margin-top:-12px}
+button.ghost::after{inset:4px}
+button[hidden]{display:none}
+button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:4px}
+.msg{min-height:1.3em;color:#fff;text-align:center;font-size:1.05rem;margin-top:-10px;text-shadow:0 1px 0 var(--shade)}
+
+/* sticky note */
+.note{
+  position:relative;width:100%;background:var(--note);padding:30px 22px 20px;transform:rotate(1.2deg);
+  box-shadow:0 6px 0 var(--shade);display:grid;gap:6px;
+  border-radius:2px 2px 26px 2px;
+}
+.note::before{
+  content:"";position:absolute;top:-14px;left:50%;width:110px;height:28px;transform:translateX(-50%) rotate(-3deg);
+  background:repeating-linear-gradient(90deg,rgba(143,208,238,.85) 0 10px,rgba(255,255,255,.75) 10px 20px);
+}
+.note label{display:flex;justify-content:space-between;align-items:baseline;font-size:1.2rem}
+.note label b{font-family:var(--brush);font-weight:400;font-size:1.35rem}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;margin:0 0 6px}
+input[type=range]::-webkit-slider-runnable-track{height:0;border-top:3px dashed var(--ink)}
+input[type=range]::-moz-range-track{height:0;border-top:3px dashed var(--ink)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--coral);border:3px solid var(--ink);margin-top:-13px;box-shadow:0 2px 0 var(--shade)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--coral);border:3px solid var(--ink)}
+
+@media (prefers-reduced-motion:reduce){.dial.alert{animation:none}button{transition:none}}
+</style>
+</head>
+<body>
+<main>
+  <!-- <div class="tape"><h1>Keep talking</h1></div> -->
+
+  <div class="dial" id="dial" role="timer" aria-live="off">
+    <svg viewBox="0 0 120 120" aria-hidden="true">
+      <circle class="paper" cx="60" cy="60" r="58"/>
+      <circle class="edge" cx="60" cy="60" r="55.5"/>
+      <g transform="rotate(-90 60 60)">
+        <circle class="stitch" cx="60" cy="60" r="47"/>
+        <circle class="yarn" id="prog" cx="60" cy="60" r="47" pathLength="100" stroke-dasharray="100" stroke-dashoffset="0"/>
+        <circle class="fluff" id="fluff" cx="60" cy="60" r="47" pathLength="100" stroke-dashoffset="0"/>
+      </g>
+    </svg>
+    <div class="center">
+      <div class="time" id="time">0:00</div>
+      <div class="state" id="state">Not listening</div>
+    </div>
+  </div>
+
+  <div class="beads" id="beads" aria-hidden="true"></div>
+
+  <button id="btn">Start listening</button>
+  <button id="pip" class="ghost">Float on top</button>
+  <div class="msg" id="msg" role="status"></div>
+
+  <div class="note">
+    <label for="limit">Quiet limit <b id="limVal">2:00</b></label>
+    <input type="range" id="limit" min="30" max="300" step="15" value="120">
+    <label for="sens">Mic sensitivity <b id="sensVal">5</b></label>
+    <input type="range" id="sens" min="1" max="10" value="5">
+    <label for="rep">Nag me every <b id="repVal">10s</b></label>
+    <input type="range" id="rep" min="3" max="60" step="1" value="10">
+  </div>
+</main>
+
+<script>
+(function(){
+  var $ = function(id){return document.getElementById(id)};
+  var btn=$('btn'), pipBtn=$('pip'), dial=$('dial'), prog=$('prog'), fluff=$('fluff'), timeEl=$('time'), stateEl=$('state'),
+      msg=$('msg'), limit=$('limit'), limVal=$('limVal'), sens=$('sens'), beadsEl=$('beads');
+  var stream=null, ctx=null, analyser=null, buf=null, wakeLock=null, tick=null, worker=null;
+  var lastSound=0, lastAlert=0, lastRun=0, alerting=false, running=false;
+  var N=14, beads=[];
+  for(var b=0;b<N;b++){var el=document.createElement('i');beadsEl.appendChild(el);beads.push(el)}
+
+  function fmt(s){s=Math.max(0,Math.floor(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+  limit.addEventListener('input',function(){limVal.textContent=fmt(+limit.value)});
+  sens.addEventListener('input',function(){$('sensVal').textContent=sens.value});
+  $('rep').addEventListener('input',function(){$('repVal').textContent=$('rep').value+'s'});
+
+  /* ---------- floating window (picture-in-picture) ---------- */
+  var cv=document.createElement('canvas'); cv.width=400; cv.height=400;
+  var g=cv.getContext('2d');
+  var vid=document.createElement('video');
+  vid.muted=true; vid.setAttribute('playsinline','');
+  vid.style.cssText='position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
+  document.body.appendChild(vid);
+  var pipOk=!!(document.pictureInPictureEnabled && vid.requestPictureInPicture && cv.captureStream);
+  if(!pipOk){pipBtn.hidden=true}
+  var view={silent:0,frac:0,text:'Not listening',alert:false};
+  function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+
+  function draw(){
+    var mat=css('--mat'),paper=css('--paper'),ink=css('--ink'),yarn=css('--yarn'),coral=css('--coral'),blush=css('--blush');
+    var flash=view.alert && (Math.floor(Date.now()/500)%2===0);
+    g.setLineDash([]); g.globalAlpha=1;
+    g.fillStyle=flash?coral:mat; g.fillRect(0,0,400,400);
+    g.beginPath(); g.arc(200,200,190,0,7); g.fillStyle=view.alert?blush:paper; g.fill();
+    g.lineCap='round';
+    g.beginPath(); g.arc(200,200,150,0,7); g.strokeStyle=ink; g.globalAlpha=.3; g.lineWidth=5; g.setLineDash([10,12]); g.stroke();
+    g.setLineDash([]); g.globalAlpha=1;
+    if(view.frac<0.995){
+      g.beginPath(); g.lineWidth=26; g.strokeStyle=view.alert?coral:yarn;
+      g.arc(200,200,150,-Math.PI/2+view.frac*2*Math.PI,1.5*Math.PI); g.stroke();
+    }
+    g.fillStyle=view.alert?coral:ink; g.textAlign='center'; g.textBaseline='middle';
+    g.font='120px "Caveat Brush","Segoe Print","Comic Sans MS",cursive';
+    g.fillText(fmt(view.silent),200,190);
+    g.font='36px "Patrick Hand","Segoe Print","Comic Sans MS",cursive';
+    g.fillText(view.text,200,268);
+  }
+
+  function prepVideo(){
+    if(!pipOk) return Promise.resolve();
+    draw();
+    if(!vid.srcObject){vid.srcObject=cv.captureStream(15)}
+    return vid.play();
+  }
+  async function openPip(){
+    try{ await prepVideo(); await vid.requestPictureInPicture(); }
+    catch(e){ msg.textContent='Your browser would not open the floating window.'; }
+  }
+  pipBtn.addEventListener('click',function(){
+    if(document.pictureInPictureElement===vid){document.exitPictureInPicture().catch(function(){})}
+    else{openPip()}
+  });
+  vid.addEventListener('enterpictureinpicture',function(){pipBtn.textContent='Close floating timer'});
+  vid.addEventListener('leavepictureinpicture',function(){pipBtn.textContent='Float on top'});
+
+  /* ---------- listening ---------- */
+  function setRing(frac){
+    var off=100*frac;
+    prog.style.strokeDashoffset=off; fluff.style.strokeDashoffset=off;
+    var vis=frac>=0.995?0:1;
+    prog.style.opacity=vis; fluff.style.opacity=vis?'':0;
+  }
+
+  function beep(){
+    try{
+      if(ctx.state==='suspended'){ctx.resume()}
+      [0,0.35,0.7].forEach(function(d){
+        var c=ctx, o=c.createOscillator(), gn=c.createGain(), t=c.currentTime+d;
+        o.type='sine'; o.frequency.value=740;
+        gn.gain.setValueAtTime(0.0001,t);
+        gn.gain.exponentialRampToValueAtTime(0.4,t+0.04);
+        gn.gain.exponentialRampToValueAtTime(0.0001,t+0.28);
+        o.connect(gn); gn.connect(c.destination); o.start(t); o.stop(t+0.3);
+      });
+    }catch(e){}
+  }
+  function remind(){
+    beep();
+    if(navigator.vibrate){try{navigator.vibrate([200,100,200])}catch(e){}}
+    if(window.Notification && Notification.permission==='granted' && document.hidden){
+      try{new Notification('Keep talking',{body:'You have been silent too long.'})}catch(e){}
+    }
+    document.title='Keep talking!';
+  }
+
+  function analyze(now){
+    analyser.getByteTimeDomainData(buf);
+    var sum=0;
+    for(var i=0;i<buf.length;i++){var v=(buf[i]-128)/128;sum+=v*v}
+    var rms=Math.sqrt(sum/buf.length);
+    var threshold=0.05-(+sens.value-1)*0.0045;
+    var n=Math.round(Math.min(1,rms/0.15)*N);
+    if(!document.hidden){for(var k=0;k<N;k++){beads[k].classList.toggle('on',k<n)}}
+    if(rms>threshold){
+      lastSound=now;
+      if(alerting){alerting=false;dial.classList.remove('alert');view.alert=false;document.title='Keep talking'}
+    }
+  }
+
+  function update(now){
+    var silent=(now-lastSound)/1000, lim=+limit.value, frac=Math.min(1,silent/lim), text;
+    if(silent>=lim){
+      if(!alerting){alerting=true;lastAlert=now;dial.classList.add('alert');remind()}
+      else if(now-lastAlert>=(+$('rep').value)*1000){lastAlert=now;remind()}
+      text='Say something!';
+    }else{
+      text=silent<2?'Hearing you':'Of silence';
+    }
+    view.silent=silent; view.frac=frac; view.text=text; view.alert=alerting;
+    timeEl.textContent=fmt(silent); stateEl.textContent=text; setRing(frac);
+    draw();
+  }
+
+  function step(){
+    if(!running) return;
+    var now=performance.now();
+    if(now-lastRun<30) return;
+    lastRun=now;
+    analyze(now); update(now);
+  }
+
+  async function start(){
+    msg.textContent='';
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+      msg.textContent='This browser does not support microphone access.';return;
+    }
+    try{
+      stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:false}});
+    }catch(e){
+      msg.textContent='Mic blocked. Allow it in your browser settings, or open this page in its own tab.';
+      return;
+    }
+    var AC=window.AudioContext||window.webkitAudioContext;
+    ctx=new AC();
+    if(ctx.state==='suspended'){try{await ctx.resume()}catch(e){}}
+    var src=ctx.createMediaStreamSource(stream);
+    analyser=ctx.createAnalyser(); analyser.fftSize=4096;
+    buf=new Uint8Array(analyser.fftSize);
+    src.connect(analyser);
+    running=true; alerting=false; lastSound=performance.now();
+    btn.textContent='Stop listening'; btn.classList.add('stop');
+    if(window.Notification && Notification.permission==='default'){try{Notification.requestPermission()}catch(e){}}
+    try{if(navigator.wakeLock){wakeLock=await navigator.wakeLock.request('screen')}}catch(e){}
+    /* main timer plus a worker timer, which browsers throttle far less in background tabs */
+    tick=setInterval(step,50);
+    try{
+      var url=URL.createObjectURL(new Blob(['setInterval(function(){postMessage(0)},50)'],{type:'application/javascript'}));
+      worker=new Worker(url); worker.onmessage=step; worker.onerror=function(){};
+    }catch(e){}
+    prepVideo().catch(function(){});
+    try{navigator.mediaSession.setActionHandler('enterpictureinpicture',function(){openPip()})}catch(e){}
+    step();
+  }
+
+  function stop(){
+    running=false;
+    if(tick) clearInterval(tick);
+    if(worker){worker.terminate();worker=null}
+    if(stream){stream.getTracks().forEach(function(t){t.stop()})}
+    if(ctx){try{ctx.close()}catch(e){}}
+    if(wakeLock){try{wakeLock.release()}catch(e){} wakeLock=null}
+    dial.classList.remove('alert'); document.title='Keep talking';
+    btn.textContent='Start listening'; btn.classList.remove('stop');
+    stateEl.textContent='Not listening'; timeEl.textContent='0:00';
+    setRing(0);
+    beads.forEach(function(x){x.classList.remove('on')});
+    view={silent:0,frac:0,text:'Not listening',alert:false}; draw();
+  }
+
+  btn.addEventListener('click',function(){running?stop():start()});
+  document.addEventListener('visibilitychange',function(){
+    if(!document.hidden && running && navigator.wakeLock && !wakeLock){
+      navigator.wakeLock.request('screen').then(function(w){wakeLock=w}).catch(function(){});
+    }
+  });
+})();
+</script>
+</body>
+</html>
