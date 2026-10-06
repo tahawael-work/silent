@@ -13,7 +13,7 @@
   padding-bottom:env(safe-area-inset-bottom,0px);
   --mat:#2e6e5a; --grid:rgba(255,255,255,.13); --grid2:rgba(255,255,255,.06);
   --paper:#fffdf7; --ink:#1f2a4d; --note:#ffe17d; --blush:#ffd3cc;
-  --yarn:#2f80c8; --coral:#ef5b4c; --felt:#f5b83d; --pink:#f4a6b8; --sky:#8fd0ee;
+  --yarn:#2f80c8; --coral:#ef5b4c; --felt:#f5b83d; --pink:#f4a6b8; --sky:#8fd0ee; --lime:#8bb83a;
   --shade:rgba(10,30,25,.35);
   --hand:"Patrick Hand","Segoe Print","Bradley Hand","Comic Sans MS",cursive;
   --brush:"Caveat Brush","Segoe Print","Bradley Hand","Comic Sans MS",cursive;
@@ -37,7 +37,6 @@ body{
 }
 main{width:100%;max-width:440px;padding:34px 22px 48px;display:flex;flex-direction:column;align-items:center;gap:26px}
 
-/* washi tape title */
 .tape{
   font-family:var(--brush);font-size:2.3rem;line-height:1;color:var(--ink);
   padding:12px 34px;transform:rotate(-2.5deg);position:relative;
@@ -47,7 +46,6 @@ main{width:100%;max-width:440px;padding:34px 22px 48px;display:flex;flex-directi
 }
 h1{margin:0;font:inherit}
 
-/* the paper dial */
 .dial{position:relative;width:min(80vw,310px);aspect-ratio:1;filter:drop-shadow(0 6px 0 var(--shade))}
 .dial svg{width:100%;height:100%;display:block}
 .paper{fill:var(--paper);transition:fill .3s}
@@ -64,7 +62,6 @@ h1{margin:0;font:inherit}
 .dial.alert{animation:wiggle .5s ease-in-out infinite}
 @keyframes wiggle{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
 
-/* bead meter */
 .beads{display:flex;gap:6px;height:26px;align-items:flex-end;width:100%;justify-content:center}
 .beads i{width:14px;height:100%;border-radius:8px;background:rgba(255,255,255,.18);border:2px dashed rgba(255,255,255,.45);transition:background .08s,border-color .08s}
 .beads i:nth-child(3n+1).on{background:var(--pink)}
@@ -72,7 +69,25 @@ h1{margin:0;font:inherit}
 .beads i:nth-child(3n).on{background:var(--sky)}
 .beads i.on{border-color:var(--ink);border-style:solid}
 
-/* felt button */
+/* waveform timeline */
+.wave{width:min(92vw,1600px);flex:none;background:var(--paper);border:2.5px dashed var(--ink);border-radius:14px;padding:10px 22px 8px;box-shadow:0 6px 0 var(--shade);transform:rotate(-.6deg)}
+.wave .cap{display:flex;justify-content:space-between;font-size:1rem;margin-bottom:2px}
+.wave .cap b{font-family:var(--brush);font-weight:400;font-size:1.2rem}
+.wscroll{overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+.wwrap{position:relative}
+.wlab{position:absolute;left:6px;z-index:1;pointer-events:none;font-size:.85rem;line-height:1.3;padding:0 7px;border-radius:9px;background:rgba(255,253,247,.8)}
+#lyou{color:var(--yarn)}
+#lspk{color:#5f8a1f}
+.wscroll::-webkit-scrollbar{display:none;height:0}
+.wave .cap{align-items:center}
+.wave .cap .rt{display:flex;align-items:center;gap:12px}
+.wave .cap button{font-size:1.05rem;padding:2px 16px;margin:0;box-shadow:0 3px 0 var(--shade)}
+.wave .cap button::after{inset:3px;border-width:2px}
+.wbar{position:relative;height:16px;margin-top:6px;border:2px dashed var(--ink);border-radius:999px;touch-action:none;cursor:pointer}
+.wbar i{position:absolute;top:1px;bottom:1px;left:0;min-width:30px;border-radius:999px;background:var(--felt);border:2px solid var(--ink);cursor:grab;touch-action:none}
+.wbar i:active{cursor:grabbing}
+.wave canvas{display:block;width:100%;height:150px}
+
 button{
   font-family:var(--brush);font-size:1.7rem;color:var(--ink);cursor:pointer;
   background:var(--felt);border:0;border-radius:999px;padding:16px 44px;min-width:240px;position:relative;
@@ -87,7 +102,6 @@ button[hidden]{display:none}
 button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:4px}
 .msg{min-height:1.3em;color:#fff;text-align:center;font-size:1.05rem;margin-top:-10px;text-shadow:0 1px 0 var(--shade)}
 
-/* sticky note */
 .note{
   position:relative;width:100%;background:var(--note);padding:30px 22px 20px;transform:rotate(1.2deg);
   box-shadow:0 6px 0 var(--shade);display:grid;gap:6px;
@@ -105,12 +119,13 @@ input[type=range]::-moz-range-track{height:0;border-top:3px dashed var(--ink)}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--coral);border:3px solid var(--ink);margin-top:-13px;box-shadow:0 2px 0 var(--shade)}
 input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--coral);border:3px solid var(--ink)}
 
+input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;cursor:pointer;flex:none}
 @media (prefers-reduced-motion:reduce){.dial.alert{animation:none}button{transition:none}}
 </style>
 </head>
 <body>
 <main>
-  <div class="tape"><h1>i love my job!!!</h1></div>
+  <div class="tape"><h1>i love my job!!</h1></div>
 
   <div class="dial" id="dial" role="timer" aria-live="off">
     <svg viewBox="0 0 120 120" aria-hidden="true">
@@ -130,17 +145,28 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
 
   <div class="beads" id="beads" aria-hidden="true"></div>
 
+  <div class="wave">
+    <div class="cap"><b>Session wave</b><span class="rt"><span id="wtime">0:00</span><button id="clr" class="ghost" type="button">Clear</button></span></div>
+    <div class="wwrap"><div class="wscroll" id="wscroll"><canvas id="wave" role="img" aria-label="Waveform of the session so far"></canvas></div><span class="wlab" id="lyou" hidden>you</span><span class="wlab" id="lspk" hidden>speaker</span></div>
+    <div class="wbar" id="wbar" hidden><i id="wthumb"></i></div>
+  </div>
+
   <button id="btn">Start listening</button>
   <button id="pip" class="ghost">Float on top</button>
+  <button id="spk" class="ghost">Add speaker sound</button>
   <div class="msg" id="msg" role="status"></div>
 
   <div class="note">
     <label for="limit">Quiet limit <b id="limVal">2:00</b></label>
     <input type="range" id="limit" min="30" max="300" step="15" value="120">
-    <label for="sens">Mic sensitivity <b id="sensVal">5</b></label>
-    <input type="range" id="sens" min="1" max="10" value="5">
-    <label for="rep">Nag me every <b id="repVal">10s</b></label>
-    <input type="range" id="rep" min="3" max="60" step="1" value="10">
+    <label for="sens">Mic sensitivity <b id="sensVal">7</b></label>
+    <input type="range" id="sens" min="1" max="10" value="7">
+    <label for="ssens">Speaker sensitivity <b id="ssensVal">1</b></label>
+    <input type="range" id="ssens" min="1" max="10" value="1">
+    <label for="rep">Nag me every <b id="repVal">20s</b></label>
+    <input type="range" id="rep" min="3" max="60" step="1" value="20">
+    <label for="incl">Speaker sound counts as talking <input checked type="checkbox" id="incl"></label>
+    <label for="ovl">Overlap waveforms <input type="checkbox" id="ovl" checked></label>
   </div>
 </main>
 
@@ -157,7 +183,97 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
   function fmt(s){s=Math.max(0,Math.floor(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
   limit.addEventListener('input',function(){limVal.textContent=fmt(+limit.value)});
   sens.addEventListener('input',function(){$('sensVal').textContent=sens.value});
+  $('ssens').addEventListener('input',function(){$('ssensVal').textContent=$('ssens').value});
   $('rep').addEventListener('input',function(){$('repVal').textContent=$('rep').value+'s'});
+
+  /* ---------- session waveform ---------- */
+  var wc=$('wave'), wg=wc.getContext('2d'), BK=250;
+  var peaks=[], speaks=[], flags=[], startT=0, lastWave=0, MAXV=1200, follow=true;
+  var spkStream=null, spkAn=null, spkBuf=null, spkUsed=false;
+  function rec(now,rms,sp){
+    var i=Math.floor((now-startT)/BK);
+    while(peaks.length<=i){peaks.push(0);speaks.push(0);flags.push(0)}
+    if(rms>peaks[i]) peaks[i]=rms;
+    if(sp>speaks[i]) speaks[i]=sp;
+    if(alerting) flags[i]=1;
+  }
+  function drawWave(){
+    var sc=$('wscroll'), vw=sc.clientWidth, el0=peaks.length/(1000/BK);
+    if(!vw) return;
+    wc.style.width=(el0>MAXV?Math.round(vw*el0/MAXV):vw)+'px';
+    var W=wc.clientWidth, H=wc.clientHeight, dpr=Math.min(window.devicePixelRatio||1,30000/W);
+    if(wc.width!==Math.round(W*dpr)||wc.height!==Math.round(H*dpr)){wc.width=Math.round(W*dpr);wc.height=Math.round(H*dpr)}
+    wg.setTransform(dpr,0,0,dpr,0,0); wg.clearRect(0,0,W,H);
+    var ink=css('--ink'),yarn=css('--yarn'),coral=css('--coral'),lime=css('--lime');
+    var axisH=18, area=H-axisH, elapsed=peaks.length/(1000/BK);
+    var total=Math.max(60,elapsed), per=1000/BK, i, x;
+    wg.fillStyle='rgba(143,160,200,.18)'; wg.fillRect(0,0,W,area);
+    var steps=[10,30,60,120,300,600,1800,3600], st=steps[steps.length-1];
+    for(i=0;i<steps.length;i++){if(steps[i]*W/total>=70){st=steps[i];break}}
+    wg.font='12px "Patrick Hand","Segoe Print",cursive'; wg.textAlign='center'; wg.textBaseline='top';
+    for(var t=st;t<total;t+=st){
+      x=t/total*W; wg.fillStyle=ink; wg.globalAlpha=.35; wg.fillRect(x,0,1,area+4);
+      wg.globalAlpha=.8; wg.fillText(fmt(t),Math.min(W-14,x),area+5);
+    }
+    wg.globalAlpha=1;
+    var ov=spkUsed&&$('ovl').checked, hh=area/2-3;
+    var tm=0.05-(+sens.value-1)*0.0045, ts=0.05-(+$('ssens').value-1)*0.0045;
+    var lanes=!spkUsed?[{a:peaks,t:tm,c:yarn,m:area/2,h:hh}]
+      :ov?[{a:speaks,t:ts,c:lime,m:area/2,h:hh},{a:peaks,t:tm,c:yarn,m:area/2,h:hh}]
+      :[{a:peaks,t:tm,c:yarn,m:area*.25,h:area*.25-3},{a:speaks,t:ts,c:lime,m:area*.75,h:area*.25-3}];
+    var end=Math.min(W,elapsed/total*W);
+    wg.globalAlpha=ov?.8:1;
+    lanes.forEach(function(L){
+      for(x=0;x<end;x++){
+        var i0=Math.floor(x/W*total*per), i1=Math.max(i0,Math.ceil((x+1)/W*total*per)-1), p=0, fl=0;
+        for(i=i0;i<=i1&&i<L.a.length;i++){if(L.a[i]>p)p=L.a[i];if(flags[i])fl=1}
+        wg.fillStyle=fl?coral:L.c; wg.fillRect(x,L.m-.75,1,1.5);
+        if(p>L.t){
+          var h=Math.max(1.5,Math.pow(Math.min(1,(p-L.t)/(0.15-L.t)),.7)*L.h);
+          wg.fillRect(x,L.m-h,1,h*2);
+        }
+      }
+    });
+    wg.globalAlpha=1;
+    if(ov){
+      
+    }else if(spkUsed){
+      wg.fillStyle=ink; wg.globalAlpha=.25; wg.fillRect(0,area/2,W,1); wg.globalAlpha=.7;
+      wg.globalAlpha=1;
+    }
+    var ly=$('lyou'), ls=$('lspk');
+    ly.hidden=ls.hidden=!spkUsed;
+    ly.style.top='3px'; ls.style.top=(ov?3:area/2+3)+'px'; ls.style.left=ov?'50px':'6px';
+    wg.fillStyle=ink; wg.fillRect(Math.min(W-2,end),0,2,area);
+    if(follow) sc.scrollLeft=sc.scrollWidth;
+    syncBar();
+    $('wtime').textContent=fmt(elapsed);
+  }
+  window.addEventListener('resize',drawWave);
+  $('wscroll').addEventListener('scroll',function(){var e=$('wscroll');follow=e.scrollWidth-e.clientWidth-e.scrollLeft<30;syncBar()});
+  var wbar=$('wbar'), wthumb=$('wthumb'), drag=null;
+  function thumbW(){var sc=$('wscroll');return Math.max(30,wbar.clientWidth*sc.clientWidth/sc.scrollWidth)}
+  function syncBar(){
+    var sc=$('wscroll'), cw=sc.clientWidth, sw=sc.scrollWidth;
+    if(sw<=cw+1){wbar.hidden=true;return}
+    wbar.hidden=false;
+    var th=thumbW(), max=sw-cw;
+    wthumb.style.width=th+'px';
+    wthumb.style.left=(max?sc.scrollLeft/max*(wbar.clientWidth-th):0)+'px';
+  }
+  wthumb.addEventListener('pointerdown',function(e){drag={x:e.clientX,l:$('wscroll').scrollLeft};wthumb.setPointerCapture(e.pointerId);e.preventDefault()});
+  wthumb.addEventListener('pointermove',function(e){
+    if(!drag) return;
+    var sc=$('wscroll');
+    sc.scrollLeft=drag.l+(e.clientX-drag.x)*(sc.scrollWidth-sc.clientWidth)/Math.max(1,wbar.clientWidth-thumbW());
+  });
+  wthumb.addEventListener('pointerup',function(){drag=null});
+  wthumb.addEventListener('pointercancel',function(){drag=null});
+  wbar.addEventListener('pointerdown',function(e){
+    if(e.target===wthumb) return;
+    var sc=$('wscroll'), r=wbar.getBoundingClientRect();
+    sc.scrollLeft=(e.clientX-r.left)/r.width*sc.scrollWidth-sc.clientWidth/2;
+  });
 
   /* ---------- floating window (picture-in-picture) ---------- */
   var cv=document.createElement('canvas'); cv.width=400; cv.height=400;
@@ -243,10 +359,13 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
     var sum=0;
     for(var i=0;i<buf.length;i++){var v=(buf[i]-128)/128;sum+=v*v}
     var rms=Math.sqrt(sum/buf.length);
-    var threshold=0.05-(+sens.value-1)*0.0045;
+    var threshold=0.05-(+sens.value-1)*0.0045, sthr=0.05-(+$('ssens').value-1)*0.0045;
     var n=Math.round(Math.min(1,rms/0.15)*N);
     if(!document.hidden){for(var k=0;k<N;k++){beads[k].classList.toggle('on',k<n)}}
-    if(rms>threshold){
+    var sp=0;
+    if(spkAn){spkAn.getByteTimeDomainData(spkBuf);var s2=0;for(var j=0;j<spkBuf.length;j++){var w=(spkBuf[j]-128)/128;s2+=w*w}sp=Math.sqrt(s2/spkBuf.length)}
+    rec(now,rms,sp);
+    if(rms>threshold||($('incl').checked&&sp>sthr)){
       lastSound=now;
       if(alerting){alerting=false;dial.classList.remove('alert');view.alert=false;document.title='Keep talking'}
     }
@@ -264,6 +383,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
     view.silent=silent; view.frac=frac; view.text=text; view.alert=alerting;
     timeEl.textContent=fmt(silent); stateEl.textContent=text; setRing(frac);
     draw();
+    if(!document.hidden && now-lastWave>100){lastWave=now;drawWave()}
   }
 
   function step(){
@@ -293,10 +413,10 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
     buf=new Uint8Array(analyser.fftSize);
     src.connect(analyser);
     running=true; alerting=false; lastSound=performance.now();
+    follow=true; startT=lastSound-peaks.length*BK;
     btn.textContent='Stop listening'; btn.classList.add('stop');
     if(window.Notification && Notification.permission==='default'){try{Notification.requestPermission()}catch(e){}}
     try{if(navigator.wakeLock){wakeLock=await navigator.wakeLock.request('screen')}}catch(e){}
-    /* main timer plus a worker timer, which browsers throttle far less in background tabs */
     tick=setInterval(step,50);
     try{
       var url=URL.createObjectURL(new Blob(['setInterval(function(){postMessage(0)},50)'],{type:'application/javascript'}));
@@ -308,7 +428,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
   }
 
   function stop(){
-    running=false;
+    running=false; stopSpk();
     if(tick) clearInterval(tick);
     if(worker){worker.terminate();worker=null}
     if(stream){stream.getTracks().forEach(function(t){t.stop()})}
@@ -320,14 +440,50 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
     setRing(0);
     beads.forEach(function(x){x.classList.remove('on')});
     view={silent:0,frac:0,text:'Not listening',alert:false}; draw();
+    drawWave();
   }
 
+  var spkBtn=$('spk');
+  async function startSpk(){
+    msg.textContent='';
+    if(!running){msg.textContent='Start listening first, then add speaker sound.';return}
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia){msg.textContent='This browser cannot capture speaker sound.';return}
+    var ds;
+    try{ds=await navigator.mediaDevices.getDisplayMedia({video:{width:1,height:1,frameRate:1},audio:true})}
+    catch(e){msg.textContent='Sharing was cancelled.';return}
+    if(!ds.getAudioTracks().length){
+      ds.getTracks().forEach(function(t){t.stop()});
+      msg.textContent='No audio shared. Pick a tab (or screen) and tick "Share audio".';return;
+    }
+    ds.getVideoTracks().forEach(function(t){t.stop()});
+    spkStream=ds;
+    var src=ctx.createMediaStreamSource(new MediaStream(ds.getAudioTracks()));
+    spkAn=ctx.createAnalyser(); spkAn.fftSize=4096; spkBuf=new Uint8Array(spkAn.fftSize);
+    src.connect(spkAn);
+    spkUsed=true; spkBtn.textContent='Remove speaker sound';
+    ds.getAudioTracks()[0].addEventListener('ended',stopSpk);
+  }
+  function stopSpk(){
+    if(spkStream){spkStream.getTracks().forEach(function(t){t.stop()});spkStream=null}
+    spkAn=null; spkBtn.textContent='Add speaker sound';
+  }
+  spkBtn.addEventListener('click',function(){spkAn?stopSpk():startSpk()});
   btn.addEventListener('click',function(){running?stop():start()});
   document.addEventListener('visibilitychange',function(){
     if(!document.hidden && running && navigator.wakeLock && !wakeLock){
       navigator.wakeLock.request('screen').then(function(w){wakeLock=w}).catch(function(){});
     }
+    if(!document.hidden) drawWave();
   });
+  function clearWave(){
+    peaks=[]; speaks=[]; flags=[]; spkUsed=!!spkAn; follow=true;
+    if(running) startT=performance.now();
+    $('wscroll').scrollLeft=0; drawWave();
+  }
+  $('clr').addEventListener('click',clearWave);
+  /* the floating window shows a skip-forward button when this handler is set; it clears the wave */
+  try{navigator.mediaSession.setActionHandler('nexttrack',clearWave)}catch(e){}
+  drawWave();
 })();
 </script>
 </body>
