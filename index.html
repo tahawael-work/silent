@@ -88,6 +88,22 @@ h1{margin:0;font:inherit}
 .wbar i:active{cursor:grabbing}
 .wave canvas{display:block;width:100%;height:150px}
 
+/* recordings */
+.recs{width:100%;background:var(--paper);border:2.5px dashed var(--ink);border-radius:14px;padding:10px 16px 12px;box-shadow:0 6px 0 var(--shade);transform:rotate(.5deg)}
+.recs h2{margin:0 0 6px;font-family:var(--brush);font-weight:400;font-size:1.3rem;display:flex;justify-content:space-between;align-items:center}
+.recs h2 .dot{display:none;font-family:var(--hand);font-size:1rem;color:var(--coral)}
+.recs.on h2 .dot{display:inline}
+.recs ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.recs li{border-top:2px dotted rgba(31,42,77,.35);padding-top:8px;display:grid;gap:6px}
+.recs li:first-child{border-top:0;padding-top:0}
+.recs .meta{display:flex;justify-content:space-between;font-size:1rem}
+.recs audio{width:100%;height:36px}
+.recs .acts{display:flex;gap:8px}
+.recs .acts a,.recs .acts button{font-family:var(--hand);font-size:1rem;color:var(--ink);background:var(--sky);border:2px solid var(--ink);border-radius:999px;padding:2px 14px;min-width:0;text-decoration:none;box-shadow:none;cursor:pointer}
+.recs .acts button::after{display:none}
+.recs .acts button{background:var(--blush)}
+.recs .empty{font-size:1rem;opacity:.7}
+
 button{
   font-family:var(--brush);font-size:1.7rem;color:var(--ink);cursor:pointer;
   background:var(--felt);border:0;border-radius:999px;padding:16px 44px;min-width:240px;position:relative;
@@ -156,6 +172,11 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
   <button id="spk" class="ghost">Add speaker sound</button>
   <div class="msg" id="msg" role="status"></div>
 
+  <div class="recs" id="recs">
+    <h2>Recordings <span class="dot" id="recdot">&#9679; recording</span></h2>
+    <ul id="reclist"><li class="empty" id="recempty">Nothing yet. Each listening session is saved here when you stop.</li></ul>
+  </div>
+
   <div class="note">
     <label for="limit">Quiet limit <b id="limVal">2:00</b></label>
     <input type="range" id="limit" min="30" max="300" step="15" value="120">
@@ -167,6 +188,7 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
     <input type="range" id="rep" min="3" max="60" step="1" value="20">
     <label for="incl">Speaker sound counts as talking <input checked type="checkbox" id="incl"></label>
     <label for="ovl">Overlap waveforms <input type="checkbox" id="ovl" checked></label>
+    <label for="rec">Record audio while listening <input checked type="checkbox" id="rec"></label>
   </div>
 </main>
 
@@ -185,6 +207,54 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
   sens.addEventListener('input',function(){$('sensVal').textContent=sens.value});
   $('ssens').addEventListener('input',function(){$('ssensVal').textContent=$('ssens').value});
   $('rep').addEventListener('input',function(){$('repVal').textContent=$('rep').value+'s'});
+
+  /* ---------- recording + playback ---------- */
+  var recDest=null, recorder=null, chunks=[], recStart=0, recCount=0;
+  function startRec(src){
+    if(!window.MediaRecorder||!$('rec').checked) return;
+    try{
+      recDest=ctx.createMediaStreamDestination(); src.connect(recDest);
+      var mt=['audio/webm;codecs=opus','audio/mp4','audio/webm'].filter(function(t){return MediaRecorder.isTypeSupported(t)})[0];
+      recorder=mt?new MediaRecorder(recDest.stream,{mimeType:mt}):new MediaRecorder(recDest.stream);
+      var type=recorder.mimeType||mt||'audio/webm'; chunks=[]; recStart=Date.now();
+      var mine=chunks, t0=recStart;
+      recorder.ondataavailable=function(e){if(e.data&&e.data.size)mine.push(e.data)};
+      recorder.onstop=function(){if(mine.length)addRec(new Blob(mine,{type:type}),(Date.now()-t0)/1000,t0)};
+      recorder.start(1000);
+      $('recs').classList.add('on');
+    }catch(e){recorder=null;recDest=null}
+  }
+  function stopRec(){
+    $('recs').classList.remove('on');
+    if(recorder&&recorder.state!=='inactive'){try{recorder.stop()}catch(e){}}
+    recorder=null; recDest=null;
+  }
+  function addRec(blob,secs,t0){
+    var url=URL.createObjectURL(blob), n=++recCount;
+    var ext=/mp4/.test(blob.type)?'m4a':'webm';
+    var d=new Date(t0), clock=d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+    var li=document.createElement('li');
+    var meta=document.createElement('div'); meta.className='meta';
+    var a=document.createElement('span'); a.textContent='#'+n+' at '+clock;
+    var b=document.createElement('span'); b.textContent=fmt(secs)+' · '+Math.max(1,Math.round(blob.size/1024))+' KB';
+    meta.appendChild(a); meta.appendChild(b);
+    var au=document.createElement('audio'); au.controls=true; au.preload='metadata'; au.src=url;
+    var acts=document.createElement('div'); acts.className='acts';
+    var dl=document.createElement('a'); dl.href=url; dl.download='recording-'+n+'.'+ext; dl.textContent='Download';
+    var del=document.createElement('button'); del.type='button'; del.textContent='Delete';
+    del.addEventListener('click',function(){
+      au.pause(); URL.revokeObjectURL(url); li.remove();
+      if(!$('reclist').children.length) $('reclist').appendChild($('recempty'));
+    });
+    acts.appendChild(dl); acts.appendChild(del);
+    li.appendChild(meta); li.appendChild(au); li.appendChild(acts);
+    var list=$('reclist'); if($('recempty').parentNode===list) list.removeChild($('recempty'));
+    list.insertBefore(li,list.firstChild);
+  }
+  /* playing back a recording must not trip the speaker meter or fool the mic; pause others when one starts */
+  document.addEventListener('play',function(e){
+    document.querySelectorAll('#reclist audio').forEach(function(a){if(a!==e.target)a.pause()});
+  },true);
 
   /* ---------- session waveform ---------- */
   var wc=$('wave'), wg=wc.getContext('2d'), BK=250;
@@ -235,10 +305,8 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
       }
     });
     wg.globalAlpha=1;
-    if(ov){
-      
-    }else if(spkUsed){
-      wg.fillStyle=ink; wg.globalAlpha=.25; wg.fillRect(0,area/2,W,1); wg.globalAlpha=.7;
+    if(!ov&&spkUsed){
+      wg.fillStyle=ink; wg.globalAlpha=.25; wg.fillRect(0,area/2,W,1);
       wg.globalAlpha=1;
     }
     var ly=$('lyou'), ls=$('lspk');
@@ -412,6 +480,7 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
     analyser=ctx.createAnalyser(); analyser.fftSize=4096;
     buf=new Uint8Array(analyser.fftSize);
     src.connect(analyser);
+    startRec(src);
     running=true; alerting=false; lastSound=performance.now();
     follow=true; startT=lastSound-peaks.length*BK;
     btn.textContent='Stop listening'; btn.classList.add('stop');
@@ -428,7 +497,7 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
   }
 
   function stop(){
-    running=false; stopSpk();
+    running=false; stopRec(); stopSpk();
     if(tick) clearInterval(tick);
     if(worker){worker.terminate();worker=null}
     if(stream){stream.getTracks().forEach(function(t){t.stop()})}
@@ -460,6 +529,7 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
     var src=ctx.createMediaStreamSource(new MediaStream(ds.getAudioTracks()));
     spkAn=ctx.createAnalyser(); spkAn.fftSize=4096; spkBuf=new Uint8Array(spkAn.fftSize);
     src.connect(spkAn);
+    if(recDest){try{src.connect(recDest)}catch(e){}}
     spkUsed=true; spkBtn.textContent='Remove speaker sound';
     ds.getAudioTracks()[0].addEventListener('ended',stopSpk);
   }
