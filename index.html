@@ -316,6 +316,8 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
     rec.end=peaks.length*BK/1000;
     try{rec.mr.stop()}catch(e){}
     rec=null;
+    if(spkSrc&&recDest){try{spkSrc.disconnect(recDest)}catch(e){}}
+    recDest=null;
   }
   function restartRec(){
     if(rec){rec.discard=true;try{rec.mr.stop()}catch(e){} rec=null}
@@ -532,7 +534,7 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
       return;
     }
     var AC=window.AudioContext||window.webkitAudioContext;
-    ctx=new AC();
+    if(!ctx||ctx.state==='closed') ctx=new AC();
     if(ctx.state==='suspended'){try{await ctx.resume()}catch(e){}}
     var src=micSrc=ctx.createMediaStreamSource(stream);
     analyser=ctx.createAnalyser(); analyser.fftSize=4096;
@@ -555,11 +557,10 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
   }
 
   function stop(){
-    stopRec(); running=false; stopSpk();
+    stopRec(); running=false;
     if(tick) clearInterval(tick);
     if(worker){worker.terminate();worker=null}
     if(stream){stream.getTracks().forEach(function(t){t.stop()})}
-    if(ctx){try{ctx.close()}catch(e){}}
     if(wakeLock){try{wakeLock.release()}catch(e){} wakeLock=null}
     dial.classList.remove('alert'); document.title='Keep talking';
     btn.textContent='Start listening'; btn.classList.remove('stop');
