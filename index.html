@@ -165,6 +165,7 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
       <button id="pfwd" type="button" aria-label="Forward 10 seconds">+10</button>
       <span id="ptime">0:00 / 0:00</span>
       <button id="prate" type="button" aria-label="Playback speed">1&times;</button>
+      <button id="pdownload" type="button">Download</button>
     </div>
   </div>
 
@@ -304,7 +305,8 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
       r.mr.ondataavailable=function(e){if(e.data&&e.data.size)r.chunks.push(e.data)};
       r.mr.onstop=function(){
         if(!r.discard&&r.chunks.length&&r.end>r.start){
-          segs.push({url:URL.createObjectURL(new Blob(r.chunks,{type:r.mr.mimeType||'audio/webm'})),start:r.start,dur:r.end-r.start});
+          var blob=new Blob(r.chunks,{type:r.mr.mimeType||'audio/webm'});
+          segs.push({blob:blob,url:URL.createObjectURL(blob),start:r.start,dur:r.end-r.start});
         }
         updPlayer();
       };
@@ -367,7 +369,7 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
     var has=segs.length>0, playing=isPlaying();
     $('pl').hidden=!has;
     $('wcan').classList.toggle('seek',has&&!running);
-    ['pback','pplay','pfwd','prate'].forEach(function(id){$(id).disabled=running});
+    ['pback','pplay','pfwd','prate','pdownload'].forEach(function(id){$(id).disabled=running});
     $('pplay').innerHTML=playing?'&#10074;&#10074;':'&#9654;';
     $('pplay').setAttribute('aria-label',playing?'Pause':'Play');
     var t=has?pos():0;
@@ -389,6 +391,66 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
   $('prate').addEventListener('click',function(){
     ri=(ri+1)%rates.length; au.playbackRate=rates[ri];
     $('prate').textContent=rates[ri]+'\u00d7';
+  });
+  var mp3EncoderPromise=null;
+  function loadMp3Encoder(){
+    if(window.lamejs) return Promise.resolve(window.lamejs);
+    if(!mp3EncoderPromise){
+      mp3EncoderPromise=new Promise(function(resolve,reject){
+        var script=document.createElement('script');
+        script.src='https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js';
+        script.integrity='sha384-xuasJXVcyv3hZq0eYpelEkBC8l4yufatZXDsKuyCU2rqfhDCb+ftuE/mSfZAteiK';
+        script.crossOrigin='anonymous';
+        script.onload=function(){
+          if(window.lamejs) resolve(window.lamejs);
+          else{mp3EncoderPromise=null;reject(new Error('The MP3 encoder did not load.'))}
+        };
+        script.onerror=function(){mp3EncoderPromise=null;reject(new Error('Could not load the MP3 encoder. Check your internet connection and try again.'))};
+        document.head.appendChild(script);
+      });
+    }
+    return mp3EncoderPromise;
+  }
+  $('pdownload').addEventListener('click',async function(){
+    var button=$('pdownload');
+    button.disabled=true; button.textContent='Preparing MP3...'; msg.textContent='';
+    try{
+      var encoderLib=await loadMp3Encoder(),clips=[],duration=total(),rate=44100;
+      var exportSegs=segs.slice();
+      for(var i=0;i<exportSegs.length;i++){
+        var buffer=await ctx.decodeAudioData(await exportSegs[i].blob.arrayBuffer());
+        clips.push({buffer:buffer,start:exportSegs[i].start,end:exportSegs[i].start+buffer.duration});
+        duration=Math.max(duration,exportSegs[i].start+buffer.duration);
+      }
+      var encoder=new encoderLib.Mp3Encoder(2,rate,128),chunks=[],frameSize=1152,frames=Math.ceil(duration*rate),clipIndex=0;
+      for(var offset=0;offset<frames;offset+=frameSize){
+        var size=Math.min(frameSize,frames-offset),left=new Int16Array(size),right=new Int16Array(size);
+        for(var f=0;f<size;f++){
+          var time=(offset+f)/rate;
+          while(clipIndex<clips.length&&time>=clips[clipIndex].end)clipIndex++;
+          var clip=clips[clipIndex];
+          if(!clip||time<clip.start)continue;
+          var b=clip.buffer,pos=Math.min(b.length-1,(time-clip.start)*b.sampleRate),index=Math.floor(pos),next=Math.min(index+1,b.length-1),frac=pos-index;
+          var ldata=b.getChannelData(0),rdata=b.numberOfChannels>1?b.getChannelData(1):ldata;
+          var l=ldata[index]+(ldata[next]-ldata[index])*frac,r=rdata[index]+(rdata[next]-rdata[index])*frac;
+          left[f]=Math.round(Math.max(-1,Math.min(1,l))*(l<0?32768:32767));
+          right[f]=Math.round(Math.max(-1,Math.min(1,r))*(r<0?32768:32767));
+        }
+        var encoded=encoder.encodeBuffer(left,right);
+        if(encoded.length)chunks.push(new Uint8Array(encoded));
+      }
+      var tail=encoder.flush();
+      if(tail.length)chunks.push(new Uint8Array(tail));
+      var link=document.createElement('a');
+      link.href=URL.createObjectURL(new Blob(chunks,{type:'audio/mpeg'}));
+      link.download='silence-reminder-recording.mp3'; link.click();
+      setTimeout(function(){URL.revokeObjectURL(link.href)},1000);
+      msg.textContent='Recording downloaded.';
+    }catch(e){
+      msg.textContent='Could not create the download: '+((e&&e.message)||e);
+    }finally{
+      button.disabled=running; button.textContent='Download MP3';
+    }
   });
   $('wcan').addEventListener('click',function(e){
     if(running||!segs.length) return;
