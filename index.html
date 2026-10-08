@@ -308,7 +308,7 @@ body.drop::after{
   function addMarker(){
     if(!running&&!segs.length){showMsg('Start listening first, then add markers.');return}
     var t=markNow();
-    if(markers.some(function(m){return Math.abs(m.t-t)<1})){
+    if(markers.some(function(m){return Math.abs(m.t-t)<0.5})){
       showMsg('There is already a marker here');
       view.markText='Already marked'; view.markUntil=Date.now()+1200;
       draw(); setTimeout(draw,1300);
