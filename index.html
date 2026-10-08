@@ -89,18 +89,14 @@ h1{margin:0;font:inherit}
 .wcan{position:relative;width:max-content;min-width:100%}
 .wcan.seek{cursor:pointer}
 #phead{position:absolute;top:0;bottom:18px;width:4px;margin-left:-2px;background:var(--coral);border:1.5px solid var(--ink);border-radius:3px;pointer-events:none;display:none}
-.pl{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+.pl{position:relative;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px;flex-wrap:wrap}
 .pl[hidden]{display:none}
 .pl button{font-size:1.1rem;padding:4px 16px;min-width:0;margin:0;box-shadow:0 3px 0 var(--shade)}
 .pl button::after{inset:3px;border-width:2px}
 .pl button:disabled{opacity:.45;cursor:default}
 #pplay{min-width:68px;font-size:1.3rem;background:var(--coral);color:#fff}
 #pplay::after{border-color:#fff}
-#pdownload{transition:transform .1s,box-shadow .1s,opacity .2s ease}
-@media (hover:hover) and (pointer:fine){
-  #pdownload{opacity:0}
-  #pdownload:hover,#pdownload:focus-visible{opacity:1;transition-delay:0s,0s,.5s}
-}
+#pdownload{position:absolute;right:0;top:50%;translate:0 -50%;opacity:0}
 #ptime{font-variant-numeric:tabular-nums;min-width:5.6em;text-align:center}
 #selInfo{font-size:.92rem;min-height:1.3em;color:var(--ink);opacity:.8;text-align:center;line-height:1.3}
 
@@ -116,7 +112,7 @@ button.ghost{font-size:1.3rem;padding:10px 28px;min-width:0;background:var(--sky
 button.ghost::after{inset:4px}
 button[hidden]{display:none}
 button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:4px}
-.msg{min-height:1.3em;color:#fff;text-align:center;font-size:1.05rem;margin-top:-10px;text-shadow:0 1px 0 var(--shade)}
+.msg{min-height:1.3em;color:#fff;text-align:center;font-size:1.05rem;margin-top:-10px;text-shadow:0 1px 0 var(--shade);opacity:1;transition:opacity .3s}
 
 
 
@@ -139,6 +135,13 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
 
 input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;cursor:pointer;flex:none}
 @media (prefers-reduced-motion:reduce){.dial.alert{animation:none}button{transition:none}}
+
+body.drop::after{
+  content:"Drop audio to load it";position:fixed;inset:12px;z-index:10;pointer-events:none;
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  font-family:var(--brush);font-size:2.4rem;color:#fff;
+  background:rgba(0,0,0,.4);border:4px dashed #fff;border-radius:24px;
+}
 </style>
 </head>
 <body>
@@ -202,12 +205,21 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
   var $ = function(id){return document.getElementById(id)};
   var btn=$('btn'), pipBtn=$('pip'), dial=$('dial'), prog=$('prog'), fluff=$('fluff'), timeEl=$('time'), stateEl=$('state'),
       msg=$('msg'), limit=$('limit'), limVal=$('limVal'), sens=$('sens'), beadsEl=$('beads');
-  var stream=null, ctx=null, analyser=null, buf=null, wakeLock=null, tick=null, worker=null;
+  var stream=null, ctx=null, analyser=null, buf=null, wakeLock=null, tick=null, worker=null, msgTimer=null;
   var lastSound=0, lastAlert=0, lastRun=0, alerting=false, running=false;
   var N=14, beads=[];
   for(var b=0;b<N;b++){var el=document.createElement('i');beadsEl.appendChild(el);beads.push(el)}
 
   function fmt(s){s=Math.max(0,Math.floor(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+  function showMsg(text){
+    clearTimeout(msgTimer);
+    msg.textContent=text;
+    msg.style.opacity='1';
+    if(text) msgTimer=setTimeout(function(){
+      msg.style.opacity='0';
+      msgTimer=setTimeout(function(){msg.textContent='';msg.style.opacity='1'},300);
+    },700);
+  }
   limit.addEventListener('input',function(){limVal.textContent=fmt(+limit.value)});
   sens.addEventListener('input',function(){$('sensVal').textContent=sens.value});
   $('ssens').addEventListener('input',function(){$('ssensVal').textContent=$('ssens').value});
@@ -332,7 +344,7 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
   /* ---------- recording ---------- */
   var rec=null, recDest=null, micSrc=null, spkSrc=null, segs=[];
   function startRec(){
-    if(!window.MediaRecorder||!ctx||!ctx.createMediaStreamDestination){msg.textContent='Recording is not supported here, the wave still works.';return}
+    if(!window.MediaRecorder||!ctx||!ctx.createMediaStreamDestination){showMsg('Recording is not supported here, the wave still works.');return}
     try{
       recDest=ctx.createMediaStreamDestination();
       micSrc.connect(recDest); if(spkSrc) spkSrc.connect(recDest);
@@ -347,7 +359,7 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
         updPlayer();
       };
       r.mr.start(1000); rec=r;
-    }catch(e){rec=null;msg.textContent='Recording is not supported here, the wave still works.'}
+    }catch(e){rec=null;showMsg('Recording is not supported here, the wave still works.')}
   }
   function stopRec(){
     if(!rec) return;
@@ -429,7 +441,7 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
   }
   $('pplay').addEventListener('click',function(){
     if(isPlaying()){au.pause();wantPlay=false;updPlayer();return}
-    var t=pos(); if(curSeg<0||t>=total()-.2) t=activeSelection?activeSelection.start:0;
+    var t=pos(); if(au.ended||curSeg<0||t>=total()-.2) t=activeSelection?activeSelection.start:0;
     seekTo(t,true);
   });
   $('pback').addEventListener('click',function(){seekTo(pos()-10,isPlaying())});
@@ -463,10 +475,10 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
     var startAt=selection?selection.start:0;
     var endAt=selection?selection.end:total();
     if(selection && endAt<=startAt){
-      msg.textContent='Choose a wider section to download.';
+      showMsg('Choose a wider section to download.');
       return;
     }
-    button.disabled=true; button.textContent='Preparing MP3...'; msg.textContent='';
+    button.disabled=true; button.textContent='Preparing MP3...'; showMsg('');
     try{
       var encoderLib=await loadMp3Encoder(),clips=[],duration=endAt-startAt,rate=44100;
       var exportSegs=segs.slice();
@@ -478,7 +490,7 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
         duration=Math.max(duration,Math.min(segEnd,endAt)-Math.max(segStart,startAt));
       }
       if(!clips.length){
-        msg.textContent='No audio was captured in the selected range.';
+        showMsg('No audio was captured in the selected range.');
         return;
       }
       var encoder=new encoderLib.Mp3Encoder(2,rate,128),chunks=[],frameSize=1152,frames=Math.ceil((endAt-startAt)*rate),clipIndex=0;
@@ -504,9 +516,9 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
       link.href=URL.createObjectURL(new Blob(chunks,{type:'audio/mpeg'}));
       link.download=selection?'silence-reminder-selection.mp3':'silence-reminder-recording.mp3'; link.click();
       setTimeout(function(){URL.revokeObjectURL(link.href)},1000);
-      msg.textContent=selection?'Selected section downloaded.':'Recording downloaded.';
+      showMsg(selection?'Selected section downloaded.':'Recording downloaded.');
     }catch(e){
-      msg.textContent='Could not create the download: '+((e&&e.message)||e);
+      showMsg('Could not create the download: '+((e&&e.message)||e));
     }finally{
       button.disabled=running; button.textContent=activeSelection?'Download selected':'Download';
       updateSelectionInfo();
@@ -593,7 +605,7 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
   }
   async function openPip(){
     try{ await prepVideo(); await vid.requestPictureInPicture(); }
-    catch(e){ msg.textContent='Your browser would not open the floating window.'; }
+    catch(e){ showMsg('Your browser would not open the floating window.'); }
   }
   pipBtn.addEventListener('click',function(){
     if(document.pictureInPictureElement===vid){document.exitPictureInPicture().catch(function(){})}
@@ -674,14 +686,14 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
 
   async function start(){
     au.pause(); wantPlay=false;
-    msg.textContent='';
+    showMsg('');
     if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
-      msg.textContent='This browser does not support microphone access.';return;
+      showMsg('This browser does not support microphone access.');return;
     }
     try{
       stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:false}});
     }catch(e){
-      msg.textContent='Mic blocked. Allow it in your browser settings, or open this page in its own tab.';
+      showMsg('Mic blocked. Allow it in your browser settings, or open this page in its own tab.');
       return;
     }
     var AC=window.AudioContext||window.webkitAudioContext;
@@ -724,15 +736,15 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
 
   var spkBtn=$('spk');
   async function startSpk(){
-    msg.textContent='';
-    if(!running){msg.textContent='Start listening first, then add speaker sound.';return}
-    if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia){msg.textContent='This browser cannot capture speaker sound.';return}
+    showMsg('');
+    if(!running){showMsg('Start listening first, then add speaker sound.');return}
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia){showMsg('This browser cannot capture speaker sound.');return}
     var ds;
     try{ds=await navigator.mediaDevices.getDisplayMedia({video:{width:1,height:1,frameRate:1},audio:true})}
-    catch(e){msg.textContent='Sharing was cancelled.';return}
+    catch(e){showMsg('Sharing was cancelled.');return}
     if(!ds.getAudioTracks().length){
       ds.getTracks().forEach(function(t){t.stop()});
-      msg.textContent='No audio shared. Pick a tab (or screen) and tick "Share audio".';return;
+      showMsg('No audio shared. Pick a tab (or screen) and tick "Share audio".');return;
     }
     ds.getVideoTracks().forEach(function(t){t.stop()});
     spkStream=ds;
@@ -764,6 +776,70 @@ input[type=checkbox]{width:26px;height:26px;accent-color:var(--coral);margin:0;c
   }
   $('clr').addEventListener('click',clearWave);
   try{navigator.mediaSession.setActionHandler('nexttrack',clearWave)}catch(e){}
+
+  /* ---------- drop audio files ---------- */
+  var dragDepth=0;
+  function hasFiles(e){return e.dataTransfer&&Array.prototype.indexOf.call(e.dataTransfer.types||[],'Files')>=0}
+  window.addEventListener('dragenter',function(e){if(!hasFiles(e))return;e.preventDefault();dragDepth++;document.body.classList.add('drop')});
+  window.addEventListener('dragover',function(e){if(hasFiles(e))e.preventDefault()});
+  window.addEventListener('dragleave',function(e){
+    if(!hasFiles(e))return;
+    dragDepth=Math.max(0,dragDepth-1);
+    if(!dragDepth)document.body.classList.remove('drop');
+  });
+  window.addEventListener('drop',function(e){
+    if(!hasFiles(e))return;
+    e.preventDefault();dragDepth=0;document.body.classList.remove('drop');
+    var files=Array.prototype.filter.call(e.dataTransfer.files,function(f){
+      return /^audio\//.test(f.type)||/\.(mp3|wav|m4a|ogg|webm)$/i.test(f.name);
+    });
+    if(!files.length){showMsg('Drop an mp3 audio file.');return}
+    loadFiles(files);
+  });
+
+  async function loadFiles(files){
+    if(running){showMsg('Stop listening first, then drop a file.');return}
+    showMsg('Loading...');
+    try{
+      var AC=window.AudioContext||window.webkitAudioContext;
+      if(!ctx||ctx.state==='closed') ctx=new AC();
+      var decoded=[];
+      for(var i=0;i<files.length;i++){
+        decoded.push(await ctx.decodeAudioData(await files[i].arrayBuffer()));
+      }
+      /* replace whatever is currently loaded/recorded */
+      dropRec(); peaks=[]; speaks=[]; flags=[]; spkUsed=false;
+      var tm=0.05-(+sens.value-1)*0.0045, lim=+limit.value, per=1000/BK, lastS=0;
+      decoded.forEach(function(b,k){
+        var t0=peaks.length/per, nb=Math.ceil(b.duration*per), bs=b.sampleRate*BK/1000,
+            ch=b.numberOfChannels, data=[], c;
+        for(c=0;c<ch;c++) data.push(b.getChannelData(c));
+        for(var j=0;j<nb;j++){
+          var a=Math.floor(j*bs), z=Math.min(b.length,Math.floor((j+1)*bs)), pk=0;
+          /* same idea as live: max RMS of ~4096-sample windows per bucket */
+          for(var s=a;s<z;s+=4096){
+            var en=Math.min(z,s+4096), sum=0;
+            for(var x=s;x<en;x++){
+              var v=0; for(c=0;c<ch;c++) v+=data[c][x];
+              v/=ch; sum+=v*v;
+            }
+            var r=Math.sqrt(sum/Math.max(1,en-s)); if(r>pk) pk=r;
+          }
+          var tt=t0+j/per;
+          if(pk>tm) lastS=tt;
+          peaks.push(pk); speaks.push(0);
+          flags.push(tt-lastS>=lim?1:0);   /* red where the quiet limit would have fired */
+        }
+        segs.push({blob:files[k],url:URL.createObjectURL(files[k]),start:t0,dur:b.duration});
+      });
+      follow=false; $('wscroll').scrollLeft=0;
+      drawWave();
+      showMsg('Loaded '+files.length+' file'+(files.length>1?'s':'')+'.');
+    }catch(err){
+      showMsg('Could not read that audio file.');
+    }
+  }
+
   drawWave();
 })();
 </script>
