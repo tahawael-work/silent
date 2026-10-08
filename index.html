@@ -85,6 +85,10 @@ h1{margin:0;font:inherit}
 .wbar{position:relative;height:16px;margin-top:6px;border:2px dashed var(--ink);border-radius:999px;touch-action:none;cursor:pointer}
 .wbar i{position:absolute;top:1px;bottom:1px;left:0;min-width:30px;border-radius:999px;background:var(--felt);border:2px solid var(--ink);cursor:grab;touch-action:none}
 .wbar i:active{cursor:grabbing}
+.wbar i b{position:absolute;top:-2px;bottom:-2px;width:18px;cursor:ew-resize;touch-action:none}
+.wbar i b.l{left:-4px}
+.wbar i b.r{right:-4px}
+.wbar i b::after{content:"";position:absolute;top:4px;bottom:4px;left:50%;width:3px;margin-left:-1.5px;border-radius:2px;background:var(--ink);opacity:.55}
 .wave canvas{display:block;width:100%;height:150px}
 .wcan{position:relative;width:max-content;min-width:100%}
 .wcan.seek{cursor:pointer}
@@ -169,7 +173,7 @@ body.drop::after{
   <div class="wave">
     <div class="cap"><b>Session wave</b><span class="rt"><span id="wtime">0:00</span><button id="clr" class="ghost" type="button">Clear</button></span></div>
     <div class="wwrap"><div class="wscroll" id="wscroll"><div class="wcan" id="wcan"><canvas id="wave" role="img" aria-label="Waveform of the session so far"></canvas><div id="phead"></div></div></div><span class="wlab" id="lyou" hidden>you</span><span class="wlab" id="lspk" hidden>speaker</span></div>
-    <div class="wbar" id="wbar" hidden><i id="wthumb"></i></div>
+    <div class="wbar" id="wbar" title="Drag the ends to zoom, double-click to reset"><i id="wthumb"><b class="l"></b><b class="r"></b></i></div>
     <div class="pl" id="pl" hidden>
       <button id="pback" type="button" aria-label="Back 10 seconds">&minus;10</button>
       <button id="pplay" type="button" aria-label="Play">&#9654;</button>
@@ -227,7 +231,7 @@ body.drop::after{
 
   /* ---------- session waveform ---------- */
   var wc=$('wave'), wg=wc.getContext('2d'), BK=250;
-  var peaks=[], speaks=[], flags=[], startT=0, lastWave=0, MAXV=1200, follow=true, wTot=60;
+  var peaks=[], speaks=[], flags=[], startT=0, lastWave=0, MAXV=1200, follow=true, wTot=60, viewSec=null;
   var spkStream=null, spkAn=null, spkBuf=null, spkUsed=false;
   var activeSelection=null, selecting=null;
   function updateSelectionInfo(){
@@ -256,7 +260,10 @@ body.drop::after{
   function drawWave(){
     var sc=$('wscroll'), vw=sc.clientWidth, el0=peaks.length/(1000/BK);
     if(!vw) return;
-    wc.style.width=(el0>MAXV?Math.round(vw*el0/MAXV):vw)+'px';
+    var tot0=Math.max(60,el0);
+    var vis=viewSec?Math.min(viewSec,tot0):(el0>MAXV?MAXV:tot0);
+    vis=Math.min(tot0,Math.max(vis,2,tot0*vw/20000));
+    wc.style.width=Math.round(vw*tot0/vis)+'px';
     var W=wc.clientWidth, H=wc.clientHeight, dpr=Math.min(window.devicePixelRatio||1,30000/W);
     if(wc.width!==Math.round(W*dpr)||wc.height!==Math.round(H*dpr)){wc.width=Math.round(W*dpr);wc.height=Math.round(H*dpr)}
     wg.setTransform(dpr,0,0,dpr,0,0); wg.clearRect(0,0,W,H);
@@ -318,25 +325,36 @@ body.drop::after{
   window.addEventListener('resize',drawWave);
   $('wscroll').addEventListener('scroll',function(){var e=$('wscroll');follow=e.scrollWidth-e.clientWidth-e.scrollLeft<30;syncBar()});
   var wbar=$('wbar'), wthumb=$('wthumb'), drag=null;
-  function thumbW(){var sc=$('wscroll');return Math.max(30,wbar.clientWidth*sc.clientWidth/sc.scrollWidth)}
   function syncBar(){
-    var sc=$('wscroll'), cw=sc.clientWidth, sw=sc.scrollWidth;
-    if(sw<=cw+1){wbar.hidden=true;return}
-    wbar.hidden=false;
-    var th=thumbW(), max=sw-cw;
+    var sc=$('wscroll'), sw=sc.scrollWidth, bw=wbar.clientWidth;
+    if(!sw||!bw) return;
+    var th=Math.max(30,bw*sc.clientWidth/sw);
     wthumb.style.width=th+'px';
-    wthumb.style.left=(max?sc.scrollLeft/max*(wbar.clientWidth-th):0)+'px';
+    wthumb.style.left=Math.max(0,Math.min(bw-th,sc.scrollLeft/sw*bw))+'px';
   }
-  wthumb.addEventListener('pointerdown',function(e){drag={x:e.clientX,l:$('wscroll').scrollLeft};wthumb.setPointerCapture(e.pointerId);e.preventDefault()});
+  wthumb.addEventListener('pointerdown',function(e){
+    var sc=$('wscroll'), sw=sc.scrollWidth, c=e.target.classList;
+    drag={m:c.contains('l')?'l':c.contains('r')?'r':'m', x:e.clientX, l:sc.scrollLeft,
+          t0:sc.scrollLeft/sw*wTot, t1:(sc.scrollLeft+sc.clientWidth)/sw*wTot};
+    wthumb.setPointerCapture(e.pointerId); e.preventDefault();
+  });
   wthumb.addEventListener('pointermove',function(e){
     if(!drag) return;
-    var sc=$('wscroll');
-    sc.scrollLeft=drag.l+(e.clientX-drag.x)*(sc.scrollWidth-sc.clientWidth)/Math.max(1,wbar.clientWidth-thumbW());
+    var sc=$('wscroll'), bw=wbar.clientWidth;
+    if(drag.m==='m'){sc.scrollLeft=drag.l+(e.clientX-drag.x)*sc.scrollWidth/bw;return}
+    var t=(e.clientX-wbar.getBoundingClientRect().left-wbar.clientLeft)/bw*wTot;
+    t=Math.max(0,Math.min(wTot,t));
+    var a=drag.t0, b=drag.t1;
+    if(drag.m==='l') a=Math.min(t,b-2); else b=Math.max(t,a+2);
+    viewSec=(b-a>=wTot-.01)?null:(b-a);
+    follow=false; drawWave();
+    sc.scrollLeft=a/wTot*sc.scrollWidth;
   });
   wthumb.addEventListener('pointerup',function(){drag=null});
   wthumb.addEventListener('pointercancel',function(){drag=null});
+  wbar.addEventListener('dblclick',function(){viewSec=null;drawWave()});
   wbar.addEventListener('pointerdown',function(e){
-    if(e.target===wthumb) return;
+    if(e.target===wthumb||wthumb.contains(e.target)) return;
     var sc=$('wscroll'), r=wbar.getBoundingClientRect();
     sc.scrollLeft=(e.clientX-r.left)/r.width*sc.scrollWidth-sc.clientWidth/2;
   });
