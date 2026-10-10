@@ -277,7 +277,7 @@ body.drop::after{
       a.addEventListener('click',function(){
         var sc=$('wscroll'); follow=false;
         sc.scrollLeft=Math.max(0,m.t/wTot*sc.scrollWidth-40);
-        if(!running&&segs.length) seekTo(m.t,true);
+        if(!running&&segs.length) seekTo(m.t,isPlaying());
       });
       var e=document.createElement('button'); e.type='button'; e.className='x'; e.textContent='\u270e';
       e.setAttribute('aria-label','Rename '+mName(m,i));
@@ -501,6 +501,7 @@ body.drop::after{
   function loop(){updPlayer();if(!au.paused) requestAnimationFrame(loop)}
   au.addEventListener('play',loop);
   au.addEventListener('pause',updPlayer);
+  au.addEventListener('seeked',updPlayer);
   au.addEventListener('timeupdate',function(){
     if(activeSelection&&pos()>=activeSelection.end-.05){
       seekTo(activeSelection.start,true);
@@ -637,7 +638,7 @@ body.drop::after{
     if(!selecting.drag){
       var t=getWaveTimeFromEvent(e||{clientX:selecting.x});
       activeSelection=null;
-      seekTo(t,true);
+      seekTo(t,isPlaying());
     }else if(!activeSelection || activeSelection.end-activeSelection.start<0.5){
       activeSelection={start:selecting.t,end:Math.min(wTot,selecting.t+0.5)};
     }
