@@ -366,7 +366,7 @@ body.drop::after{
         for(i=i0;i<=i1&&i<L.a.length;i++){if(L.a[i]>p)p=L.a[i];if(flags[i])fl=1}
         wg.fillStyle=fl?coral:L.c; wg.fillRect(x,L.m-.75,1,1.5);
         if(p>L.t){
-          var h=Math.max(1.5,Math.pow(Math.min(1,(p-L.t)/(0.15-L.t)),.7)*L.h);
+          var h=Math.max(1.5,Math.pow(Math.min(1,(p-L.t)/(0.5-L.t)),.6)*L.h);
           wg.fillRect(x,L.m-h,1,h*2);
         }
       }
